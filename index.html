@@ -4,26 +4,31 @@
 <meta charset="UTF-8" />
 <title>Vivid Caseload</title>
 
+<!-- Inter font -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-<style>#map{height:380px}</style>
+<style>
+  body { font-family: 'Inter', sans-serif; }
+  #map { height:360px; z-index:0; }
+  .modal { z-index:50; }
+</style>
 
 <script>
 tailwind.config = {
   theme: {
     extend: {
-      colors: {
-        brand: {500:'#708b42',600:'#5c7336',100:'#e4e8d7'}
-      }
+      colors: { brand:{500:'#708b42',600:'#5c7336',100:'#e4e8d7'} }
     }
   }
 }
 </script>
 </head>
 
-<body class="bg-gray-50 text-gray-800">
+<body class="bg-gray-50">
 
 <!-- LOGIN -->
 <div id="login" class="h-screen flex items-center justify-center">
@@ -35,51 +40,60 @@ tailwind.config = {
   </div>
 </div>
 
-<!-- APP -->
 <div id="app" class="hidden">
 
+<!-- HEADER -->
 <header class="bg-white shadow px-6 py-4 flex justify-between items-center">
-  <img src="https://vividearlylearning.com.au/wp-content/uploads/2025/07/Vivid-Early-Learning_RGB_Primary-logo_fullcolor-300x142.png" class="h-10"/>
-  <button onclick="openClientModal()" class="bg-brand-600 text-white px-4 py-2 rounded">Add Client</button>
+  <div class="flex items-center gap-6">
+    <img src="https://vividearlylearning.com.au/wp-content/uploads/2025/07/Vivid-Early-Learning_RGB_Primary-logo_fullcolor-300x142.png" class="h-10"/>
+    <select id="headerTherapist" onchange="renderAll()" class="border p-2 rounded text-sm"></select>
+  </div>
+  <div class="flex gap-3">
+    <button onclick="openStaffModal()" class="border px-4 py-2 rounded">Edit Staff</button>
+    <button onclick="openClientModal()" class="bg-brand-600 text-white px-4 py-2 rounded">Add Client</button>
+  </div>
 </header>
 
-<!-- MAP + FILTER PANEL -->
-<div class="flex gap-6 p-6">
-  <div class="w-64 bg-white p-4 rounded-xl shadow text-sm">
-    <h3 class="font-semibold mb-2">Filter by LGA</h3>
-    <div id="lgaFilters"></div>
-    <h3 class="font-semibold mt-4 mb-2">Filter by Staff</h3>
-    <div id="staffFilters"></div>
-  </div>
-  <div id="map" class="flex-1 rounded-xl shadow"></div>
+<!-- MAP -->
+<div class="p-6">
+  <div id="map" class="rounded-xl shadow"></div>
+</div>
+
+<!-- FILTERS -->
+<div class="px-6 flex gap-4 text-sm">
+  <select id="filterLGA" onchange="renderAll()" class="border p-2 rounded"></select>
+  <select id="filterFreq" onchange="renderAll()" class="border p-2 rounded"></select>
+  <input id="search" oninput="renderAll()" placeholder="Search client..." class="border p-2 rounded w-64"/>
 </div>
 
 <!-- TABLE -->
-<div class="px-6 pb-12">
-<table class="w-full bg-white rounded-xl shadow overflow-hidden text-sm">
-<thead class="bg-brand-100">
+<div class="p-6">
+<table class="w-full bg-white rounded-xl shadow text-sm">
+<thead class="bg-brand-100 text-left">
 <tr>
-<th class="p-3 text-left">Name</th>
+<th class="p-3">Name</th>
 <th>Session</th>
 <th>LGA</th>
 <th>Lead</th>
 <th>Frequency</th>
+<th>Phone</th>
 <th></th>
 </tr>
 </thead>
 <tbody id="clientTable"></tbody>
 </table>
 </div>
+
 </div>
 
 <!-- CLIENT MODAL -->
-<div id="clientModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-  <div class="bg-white w-[600px] p-8 rounded-xl">
-    <h2 class="text-xl font-semibold mb-4">Client Details</h2>
+<div id="clientModal" class="hidden modal fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+  <div class="bg-white w-[620px] p-8 rounded-xl">
+    <h2 class="text-xl font-semibold mb-4">Client</h2>
 
-    <input id="c_name" placeholder="Client Name" class="w-full border p-3 rounded mb-3"/>
+    <input id="c_name" placeholder="Name" class="w-full border p-3 rounded mb-3"/>
 
-    <div class="mb-3">
+    <div class="mb-3 text-sm">
       <label class="mr-3"><input type="checkbox" value="School" class="stype"/> School</label>
       <label class="mr-3"><input type="checkbox" value="Home" class="stype"/> Home</label>
       <label><input type="checkbox" value="Studio" class="stype"/> Studio</label>
@@ -88,36 +102,35 @@ tailwind.config = {
     <input id="c_address" placeholder="Address" oninput="autoAddress(this.value)" class="w-full border p-3 rounded mb-1"/>
     <div id="addressList" class="border rounded mb-3 text-sm"></div>
 
-    <select id="c_lga" class="w-full border p-3 rounded mb-3">
-      <option>Maitland</option><option>Cessnock</option><option>Newcastle</option>
-      <option>Lake Macquarie</option><option>Port Stephens</option><option>Dungog</option>
-    </select>
+    <div class="grid grid-cols-2 gap-3">
+      <select id="c_lga" class="border p-3 rounded">
+        <option>Maitland</option><option>Cessnock</option><option>Newcastle</option>
+        <option>Lake Macquarie</option><option>Port Stephens</option><option>Dungog</option>
+      </select>
+      <select id="c_freq" class="border p-3 rounded">
+        <option>Twice weekly</option><option>Weekly</option><option>Fortnightly</option>
+        <option>Monthly</option><option>As needed</option><option>Other</option>
+      </select>
+    </div>
 
-    <select id="c_freq" class="w-full border p-3 rounded mb-3">
-      <option>Twice weekly</option><option>Weekly</option><option>Fortnightly</option>
-      <option>Monthly</option><option>As needed</option><option>Other</option>
-    </select>
-
-    <select id="c_lead" class="w-full border p-3 rounded mb-3"></select>
-    <input id="c_other" placeholder="Other Therapists" class="w-full border p-3 rounded mb-3"/>
-    <input id="c_phone" placeholder="Contact Number" class="w-full border p-3 rounded mb-3"/>
-
+    <select id="c_lead" class="w-full border p-3 rounded my-3"></select>
+    <input id="c_other" placeholder="Other therapists" class="w-full border p-3 rounded mb-3"/>
+    <input id="c_phone" placeholder="Phone" class="w-full border p-3 rounded mb-3"/>
     <textarea id="c_notes" placeholder="Notes" class="w-full border p-3 rounded mb-4"></textarea>
 
-    <div class="flex justify-between">
-      <button onclick="openStaffModal()" class="text-brand-600 text-sm">+ Add Staff</button>
-      <div>
-        <button onclick="saveClient()" class="bg-brand-600 text-white px-4 py-2 rounded mr-2">Save</button>
-        <button onclick="closeClientModal()">Cancel</button>
-      </div>
+    <div class="flex justify-end gap-3">
+      <button onclick="closeClientModal()">Cancel</button>
+      <button onclick="saveClient()" class="bg-brand-600 text-white px-4 py-2 rounded">Save</button>
     </div>
   </div>
 </div>
 
-<!-- ADD STAFF MODAL -->
-<div id="staffModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+<!-- STAFF MODAL -->
+<div id="staffModal" class="hidden modal fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
   <div class="bg-white p-6 rounded-xl w-80">
-    <input id="newStaff" placeholder="Staff Name" class="w-full border p-3 rounded mb-3"/>
+    <h3 class="font-semibold mb-3">Staff</h3>
+    <div id="staffList" class="text-sm mb-3"></div>
+    <input id="newStaff" placeholder="New staff" class="w-full border p-2 rounded mb-2"/>
     <button onclick="addStaff()" class="bg-brand-600 text-white w-full p-2 rounded">Add</button>
   </div>
 </div>
@@ -125,7 +138,7 @@ tailwind.config = {
 <script>
 let STAFF = JSON.parse(localStorage.getItem("staff")||'["Megan","Lara M","Liv"]');
 let clients = JSON.parse(localStorage.getItem("clients")||"[]");
-let map, markers=[];
+let editIndex=null, map, markers=[];
 
 /* LOGIN */
 function checkPassword(){
@@ -137,55 +150,74 @@ function checkPassword(){
 
 /* INIT */
 function init(){
- initStaff();
- initFilters();
  initMap();
- renderClients();
+ refreshStaffUI();
+ initFilters();
+ renderAll();
 }
 
-/* STAFF */
-function initStaff(){
- c_lead.innerHTML = STAFF.map(s=>`<option>${s}</option>`);
- staffFilters.innerHTML = STAFF.map(s=>`<label><input type="checkbox" value="${s}" onchange="renderMap()"> ${s}</label><br>`).join('');
+/* MAP */
+function initMap(){
+ map=L.map('map').setView([-32.9,151.75],10);
+ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+}
+
+/* STAFF UI */
+function refreshStaffUI(){
+ headerTherapist.innerHTML='<option value="">All Therapists</option>'+STAFF.map(s=>`<option>${s}</option>`);
+ c_lead.innerHTML=STAFF.map(s=>`<option>${s}</option>`);
+ staffList.innerHTML=STAFF.join("<br>");
+ localStorage.setItem("staff",JSON.stringify(STAFF));
 }
 function openStaffModal(){ staffModal.classList.remove("hidden"); }
-function addStaff(){
- STAFF.push(newStaff.value);
- localStorage.setItem("staff",JSON.stringify(STAFF));
- staffModal.classList.add("hidden");
- initStaff();
-}
+function addStaff(){ STAFF.push(newStaff.value); refreshStaffUI(); }
 
 /* CLIENT MODAL */
-function openClientModal(){ resetForm(); clientModal.classList.remove("hidden"); }
-function closeClientModal(){ clientModal.classList.add("hidden"); resetForm(); }
-function resetForm(){
- document.querySelectorAll(".stype").forEach(c=>c.checked=false);
- c_name.value=c_address.value=c_other.value=c_phone.value=c_notes.value="";
+function openClientModal(i=null){
+ editIndex=i;
+ clientModal.classList.remove("hidden");
+ if(i!==null){
+  const c=clients[i];
+  c_name.value=c.name;
+  c_address.value=c.address;
+  c_lga.value=c.lga;
+  c_freq.value=c.freq;
+  c_lead.value=c.lead;
+  c_other.value=c.other;
+  c_phone.value=c.phone;
+  c_notes.value=c.notes;
+ }
 }
+function closeClientModal(){ clientModal.classList.add("hidden"); }
 
-/* SAVE CLIENT */
+/* SAVE */
 function saveClient(){
- const session=[...document.querySelectorAll(".stype:checked")].map(c=>c.value);
+ const session=[...document.querySelectorAll(".stype:checked")].map(x=>x.value).join(", ");
  const c={
   name:c_name.value,
-  session:session.join(", "),
-  address:c_address.value,
-  lga:c_lga.value,
-  freq:c_freq.value,
-  lead:c_lead.value,
-  other:c_other.value,
-  phone:c_phone.value,
+  session, address:c_address.value, lga:c_lga.value,
+  freq:c_freq.value, lead:c_lead.value,
+  other:c_other.value, phone:c_phone.value,
   notes:c_notes.value
  };
- clients.push(c);
+ if(editIndex!==null) clients[editIndex]=c; else clients.push(c);
  localStorage.setItem("clients",JSON.stringify(clients));
- closeClientModal();
- renderClients(); renderMap();
+ closeClientModal(); renderAll();
 }
 
-/* TABLE */
-function renderClients(){
+/* DELETE */
+function deleteClient(i){
+ if(confirm("Are you sure?")){
+  clients.splice(i,1);
+  localStorage.setItem("clients",JSON.stringify(clients));
+  renderAll();
+ }
+}
+
+/* RENDER */
+function renderAll(){ renderTable(); renderMap(); }
+
+function renderTable(){
  clientTable.innerHTML="";
  clients.forEach((c,i)=>{
   clientTable.innerHTML+=`
@@ -195,16 +227,15 @@ function renderClients(){
     <td>${c.lga}</td>
     <td>${c.lead}</td>
     <td>${c.freq}</td>
-    <td>✏️</td>
+    <td>${c.phone}</td>
+    <td class="space-x-2">
+      <button onclick="openClientModal(${i})">✏️</button>
+      <button onclick="deleteClient(${i})">🗑️</button>
+    </td>
   </tr>`;
  });
 }
 
-/* MAP */
-function initMap(){
- map=L.map('map').setView([-32.9,151.75],10);
- L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-}
 function renderMap(){
  markers.forEach(m=>map.removeLayer(m)); markers=[];
  clients.forEach(c=>{
@@ -219,7 +250,7 @@ function renderMap(){
  });
 }
 
-/* ADDRESS AU ONLY */
+/* ADDRESS AU */
 function autoAddress(q){
  if(q.length<3) return;
  fetch(`https://nominatim.openstreetmap.org/search?country=Australia&format=json&q=${q}`)
@@ -232,12 +263,6 @@ function autoAddress(q){
       </div>`
     ).join('');
   });
-}
-
-/* LGA FILTERS */
-function initFilters(){
- const LGAS=["Maitland","Cessnock","Newcastle","Lake Macquarie","Port Stephens","Dungog"];
- lgaFilters.innerHTML = LGAS.map(l=>`<label><input type="checkbox" value="${l}" onchange="renderMap()"> ${l}</label><br>`).join('');
 }
 </script>
 </body>
