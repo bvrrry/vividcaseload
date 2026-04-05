@@ -4,27 +4,20 @@
 <meta charset="UTF-8" />
 <title>Vivid Caseload</title>
 
-<!-- Inter font -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <style>
-  body { font-family: 'Inter', sans-serif; }
-  #map { height:360px; z-index:0; }
-  .modal { z-index:50; }
+body{font-family:'Inter',sans-serif}
+#map{height:360px}
+.rowHover:hover{transform:scale(1.01);background:#f7f8f4}
+.modal{z-index:50}
 </style>
 
 <script>
-tailwind.config = {
-  theme: {
-    extend: {
-      colors: { brand:{500:'#708b42',600:'#5c7336',100:'#e4e8d7'} }
-    }
-  }
-}
+tailwind.config={theme:{extend:{colors:{brand:{500:'#708b42',600:'#5c7336',100:'#e4e8d7'}}}}}
 </script>
 </head>
 
@@ -32,38 +25,41 @@ tailwind.config = {
 
 <!-- LOGIN -->
 <div id="login" class="h-screen flex items-center justify-center">
-  <div class="bg-white p-10 rounded-xl shadow w-96">
-    <h1 class="text-xl font-semibold mb-4">Caseload Login</h1>
-    <input id="password" type="password" class="w-full border p-3 rounded mb-2"/>
-    <p id="loginError" class="text-red-600 text-sm hidden">Incorrect password</p>
-    <button onclick="checkPassword()" class="w-full bg-brand-600 text-white p-3 rounded mt-3">Enter</button>
-  </div>
+ <div class="bg-white p-10 rounded-xl shadow w-96">
+  <h1 class="text-xl font-semibold mb-4">Caseload Login</h1>
+  <input id="password" type="password" class="w-full border p-3 rounded mb-2"/>
+  <p id="loginError" class="text-red-600 text-sm hidden">Incorrect password</p>
+  <button onclick="checkPassword()" class="w-full bg-brand-600 text-white p-3 rounded mt-3">Enter</button>
+ </div>
 </div>
 
 <div id="app" class="hidden">
 
 <!-- HEADER -->
 <header class="bg-white shadow px-6 py-4 flex justify-between items-center">
-  <div class="flex items-center gap-6">
-    <img src="https://vividearlylearning.com.au/wp-content/uploads/2025/07/Vivid-Early-Learning_RGB_Primary-logo_fullcolor-300x142.png" class="h-10"/>
-    <select id="headerTherapist" onchange="renderAll()" class="border p-2 rounded text-sm"></select>
-  </div>
-  <div class="flex gap-3">
-    <button onclick="openStaffModal()" class="border px-4 py-2 rounded">Edit Staff</button>
-    <button onclick="openClientModal()" class="bg-brand-600 text-white px-4 py-2 rounded">Add Client</button>
-  </div>
+ <div class="flex items-center gap-6">
+  <img src="https://vividearlylearning.com.au/wp-content/uploads/2025/07/Vivid-Early-Learning_RGB_Primary-logo_fullcolor-300x142.png" class="h-10"/>
+  <select id="headerTherapist" class="border p-2 rounded text-sm"></select>
+ </div>
+ <div class="flex gap-3">
+  <button onclick="openStaffModal()" class="border px-4 py-2 rounded">Edit Staff</button>
+  <button onclick="openClientModal()" class="bg-brand-600 text-white px-4 py-2 rounded">Add Client</button>
+ </div>
 </header>
 
 <!-- MAP -->
 <div class="p-6">
-  <div id="map" class="rounded-xl shadow"></div>
+ <div id="map" class="rounded-xl shadow"></div>
 </div>
 
 <!-- FILTERS -->
 <div class="px-6 flex gap-4 text-sm">
-  <select id="filterLGA" onchange="renderAll()" class="border p-2 rounded"></select>
-  <select id="filterFreq" onchange="renderAll()" class="border p-2 rounded"></select>
-  <input id="search" oninput="renderAll()" placeholder="Search client..." class="border p-2 rounded w-64"/>
+ <select id="filterLGA" class="border p-2 rounded">
+  <option value="">All LGA</option>
+  <option>Maitland</option><option>Cessnock</option><option>Newcastle</option>
+  <option>Lake Macquarie</option><option>Port Stephens</option><option>Dungog</option>
+ </select>
+ <input id="search" placeholder="Search client..." class="border p-2 rounded w-64"/>
 </div>
 
 <!-- TABLE -->
@@ -72,73 +68,61 @@ tailwind.config = {
 <thead class="bg-brand-100 text-left">
 <tr>
 <th class="p-3">Name</th>
-<th>Session</th>
+<th>Address</th>
 <th>LGA</th>
-<th>Lead</th>
+<th>Lead Therapist</th>
 <th>Frequency</th>
-<th>Phone</th>
 <th></th>
 </tr>
 </thead>
 <tbody id="clientTable"></tbody>
 </table>
 </div>
-
 </div>
 
 <!-- CLIENT MODAL -->
 <div id="clientModal" class="hidden modal fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-  <div class="bg-white w-[620px] p-8 rounded-xl">
-    <h2 class="text-xl font-semibold mb-4">Client</h2>
+ <div class="bg-white w-[640px] p-8 rounded-xl">
+  <h2 class="text-xl font-semibold mb-4">Client Details</h2>
 
-    <input id="c_name" placeholder="Name" class="w-full border p-3 rounded mb-3"/>
+  <div id="clientDetails" class="text-sm space-y-2"></div>
 
-    <div class="mb-3 text-sm">
-      <label class="mr-3"><input type="checkbox" value="School" class="stype"/> School</label>
-      <label class="mr-3"><input type="checkbox" value="Home" class="stype"/> Home</label>
-      <label><input type="checkbox" value="Studio" class="stype"/> Studio</label>
-    </div>
-
-    <input id="c_address" placeholder="Address" oninput="autoAddress(this.value)" class="w-full border p-3 rounded mb-1"/>
-    <div id="addressList" class="border rounded mb-3 text-sm"></div>
-
-    <div class="grid grid-cols-2 gap-3">
-      <select id="c_lga" class="border p-3 rounded">
-        <option>Maitland</option><option>Cessnock</option><option>Newcastle</option>
-        <option>Lake Macquarie</option><option>Port Stephens</option><option>Dungog</option>
-      </select>
-      <select id="c_freq" class="border p-3 rounded">
-        <option>Twice weekly</option><option>Weekly</option><option>Fortnightly</option>
-        <option>Monthly</option><option>As needed</option><option>Other</option>
-      </select>
-    </div>
-
-    <select id="c_lead" class="w-full border p-3 rounded my-3"></select>
-    <input id="c_other" placeholder="Other therapists" class="w-full border p-3 rounded mb-3"/>
-    <input id="c_phone" placeholder="Phone" class="w-full border p-3 rounded mb-3"/>
-    <textarea id="c_notes" placeholder="Notes" class="w-full border p-3 rounded mb-4"></textarea>
-
-    <div class="flex justify-end gap-3">
-      <button onclick="closeClientModal()">Cancel</button>
-      <button onclick="saveClient()" class="bg-brand-600 text-white px-4 py-2 rounded">Save</button>
-    </div>
+  <div class="mt-6 text-right">
+    <button onclick="closeClientModal()">Close</button>
   </div>
+ </div>
 </div>
 
-<!-- STAFF MODAL -->
-<div id="staffModal" class="hidden modal fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-  <div class="bg-white p-6 rounded-xl w-80">
-    <h3 class="font-semibold mb-3">Staff</h3>
-    <div id="staffList" class="text-sm mb-3"></div>
-    <input id="newStaff" placeholder="New staff" class="w-full border p-2 rounded mb-2"/>
-    <button onclick="addStaff()" class="bg-brand-600 text-white w-full p-2 rounded">Add</button>
+<!-- ADD/EDIT MODAL -->
+<div id="editModal" class="hidden modal fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+ <div class="bg-white w-[620px] p-8 rounded-xl">
+  <h2 class="text-xl font-semibold mb-4">Client</h2>
+
+  <input id="c_name" placeholder="Name" class="w-full border p-3 rounded mb-3"/>
+  <input id="c_address" placeholder="Address" oninput="autoAddress(this.value)" class="w-full border p-3 rounded mb-1"/>
+  <div id="addressList" class="border rounded mb-3 text-sm"></div>
+
+  <select id="c_lga" class="w-full border p-3 rounded mb-3">
+    <option>Maitland</option><option>Cessnock</option><option>Newcastle</option>
+    <option>Lake Macquarie</option><option>Port Stephens</option><option>Dungog</option>
+  </select>
+
+  <select id="c_lead" class="w-full border p-3 rounded mb-3"></select>
+  <select id="c_freq" class="w-full border p-3 rounded mb-3">
+    <option>Weekly</option><option>Fortnightly</option><option>Monthly</option>
+  </select>
+
+  <div class="flex justify-end gap-3">
+    <button onclick="closeEdit()">Cancel</button>
+    <button onclick="saveClient()" class="bg-brand-600 text-white px-4 py-2 rounded">Save</button>
   </div>
+ </div>
 </div>
 
 <script>
-let STAFF = JSON.parse(localStorage.getItem("staff")||'["Megan","Lara M","Liv"]');
-let clients = JSON.parse(localStorage.getItem("clients")||"[]");
-let editIndex=null, map, markers=[];
+let STAFF=JSON.parse(localStorage.getItem("staff")||'["Megan","Lara M","Liv"]');
+let clients=JSON.parse(localStorage.getItem("clients")||"[]");
+let map, markers=[], editIndex=null;
 
 /* LOGIN */
 function checkPassword(){
@@ -151,8 +135,11 @@ function checkPassword(){
 /* INIT */
 function init(){
  initMap();
- refreshStaffUI();
- initFilters();
+ headerTherapist.innerHTML='<option value="">All Therapists</option>'+STAFF.map(s=>`<option>${s}</option>`);
+ c_lead.innerHTML=STAFF.map(s=>`<option>${s}</option>`);
+ headerTherapist.onchange=renderAll;
+ filterLGA.onchange=renderAll;
+ search.oninput=renderAll;
  renderAll();
 }
 
@@ -162,56 +149,39 @@ function initMap(){
  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 }
 
-/* STAFF UI */
-function refreshStaffUI(){
- headerTherapist.innerHTML='<option value="">All Therapists</option>'+STAFF.map(s=>`<option>${s}</option>`);
- c_lead.innerHTML=STAFF.map(s=>`<option>${s}</option>`);
- staffList.innerHTML=STAFF.join("<br>");
- localStorage.setItem("staff",JSON.stringify(STAFF));
+/* ADDRESS VALIDATION → SAVE LAT LNG */
+function autoAddress(q){
+ if(q.length<3)return;
+ fetch(`https://nominatim.openstreetmap.org/search?country=Australia&format=json&q=${q}`)
+ .then(r=>r.json()).then(d=>{
+  addressList.innerHTML=d.slice(0,5).map(a=>
+   `<div class="p-2 hover:bg-brand-100 cursor-pointer"
+    onclick="selectAddress('${a.display_name}',${a.lat},${a.lon})">
+    ${a.display_name}
+   </div>`).join('');
+ });
 }
-function openStaffModal(){ staffModal.classList.remove("hidden"); }
-function addStaff(){ STAFF.push(newStaff.value); refreshStaffUI(); }
-
-/* CLIENT MODAL */
-function openClientModal(i=null){
- editIndex=i;
- clientModal.classList.remove("hidden");
- if(i!==null){
-  const c=clients[i];
-  c_name.value=c.name;
-  c_address.value=c.address;
-  c_lga.value=c.lga;
-  c_freq.value=c.freq;
-  c_lead.value=c.lead;
-  c_other.value=c.other;
-  c_phone.value=c.phone;
-  c_notes.value=c.notes;
- }
+let tempLat,tempLng;
+function selectAddress(a,lat,lng){
+ c_address.value=a;
+ tempLat=lat; tempLng=lng;
+ addressList.innerHTML="";
 }
-function closeClientModal(){ clientModal.classList.add("hidden"); }
 
 /* SAVE */
 function saveClient(){
- const session=[...document.querySelectorAll(".stype:checked")].map(x=>x.value).join(", ");
  const c={
   name:c_name.value,
-  session, address:c_address.value, lga:c_lga.value,
-  freq:c_freq.value, lead:c_lead.value,
-  other:c_other.value, phone:c_phone.value,
-  notes:c_notes.value
+  address:c_address.value,
+  lga:c_lga.value,
+  lead:c_lead.value || headerTherapist.value,
+  freq:c_freq.value,
+  lat:tempLat, lng:tempLng,
+  comments:[]
  };
  if(editIndex!==null) clients[editIndex]=c; else clients.push(c);
  localStorage.setItem("clients",JSON.stringify(clients));
- closeClientModal(); renderAll();
-}
-
-/* DELETE */
-function deleteClient(i){
- if(confirm("Are you sure?")){
-  clients.splice(i,1);
-  localStorage.setItem("clients",JSON.stringify(clients));
-  renderAll();
- }
+ closeEdit(); renderAll();
 }
 
 /* RENDER */
@@ -219,50 +189,58 @@ function renderAll(){ renderTable(); renderMap(); }
 
 function renderTable(){
  clientTable.innerHTML="";
+ const ft=headerTherapist.value, fl=filterLGA.value, s=search.value.toLowerCase();
  clients.forEach((c,i)=>{
-  clientTable.innerHTML+=`
-  <tr class="border-t">
-    <td class="p-3 font-medium">${c.name}</td>
-    <td>${c.session}</td>
+  if((!ft||c.lead===ft)&&(!fl||c.lga===fl)&&c.name.toLowerCase().includes(s)){
+   clientTable.innerHTML+=`
+   <tr class="border-t rowHover cursor-pointer" onclick="openDetails(${i})">
+    <td class="p-3">${c.name}</td>
+    <td>${c.address}</td>
     <td>${c.lga}</td>
     <td>${c.lead}</td>
     <td>${c.freq}</td>
-    <td>${c.phone}</td>
-    <td class="space-x-2">
-      <button onclick="openClientModal(${i})">✏️</button>
+    <td class="space-x-2" onclick="event.stopPropagation()">
+      <button onclick="openEdit(${i})">✏️</button>
       <button onclick="deleteClient(${i})">🗑️</button>
     </td>
-  </tr>`;
+   </tr>`;
+  }
  });
 }
 
 function renderMap(){
  markers.forEach(m=>map.removeLayer(m)); markers=[];
  clients.forEach(c=>{
-  fetch(`https://nominatim.openstreetmap.org/search?country=Australia&format=json&q=${c.address}`)
-   .then(r=>r.json()).then(d=>{
-     if(d[0]){
-      const m=L.marker([d[0].lat,d[0].lon]).addTo(map)
-        .bindPopup(`<b>${c.name}</b><br>${c.lead}`);
-      markers.push(m);
-     }
-   });
+  if(c.lat){
+   const m=L.marker([c.lat,c.lng]).addTo(map).bindPopup(c.name);
+   markers.push(m);
+  }
  });
 }
 
-/* ADDRESS AU */
-function autoAddress(q){
- if(q.length<3) return;
- fetch(`https://nominatim.openstreetmap.org/search?country=Australia&format=json&q=${q}`)
-  .then(r=>r.json())
-  .then(d=>{
-    addressList.innerHTML=d.slice(0,5).map(a=>
-      `<div class="p-2 hover:bg-brand-100 cursor-pointer"
-        onclick="c_address.value='${a.display_name}';addressList.innerHTML=''">
-        ${a.display_name}
-      </div>`
-    ).join('');
-  });
+/* DETAILS */
+function openDetails(i){
+ const c=clients[i];
+ clientDetails.innerHTML=`
+ <b>Name:</b> ${c.name}<br>
+ <b>Address:</b> ${c.address}<br>
+ <b>LGA:</b> ${c.lga}<br>
+ <b>Lead Therapist:</b> ${c.lead}<br>
+ <b>Frequency:</b> ${c.freq}<br>
+ `;
+ clientModal.classList.remove("hidden");
+}
+function closeClientModal(){ clientModal.classList.add("hidden"); }
+
+/* EDIT / DELETE */
+function openEdit(i){ editIndex=i; editModal.classList.remove("hidden"); }
+function closeEdit(){ editModal.classList.add("hidden"); }
+function deleteClient(i){
+ if(confirm("Are you sure?")){
+  clients.splice(i,1);
+  localStorage.setItem("clients",JSON.stringify(clients));
+  renderAll();
+ }
 }
 </script>
 </body>
