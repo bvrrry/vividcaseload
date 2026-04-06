@@ -1439,62 +1439,30 @@ function updateCaseloadCount(totalRecords, uniqueClients){
 
   function renderTable(){
     const tbody=document.getElementById("clients-tbody"),empty=document.getElementById("clients-empty");
-const allRows=sortClients(visibleClientsForTable());
-    updateCaseloadCount(allRows.length);
+    const allRows=sortClients(visibleClientsForTable());
+    const allGroups=groupClientRows(allRows);
+    updateCaseloadCount(allRows.length, allGroups.length);
     tbody.innerHTML="";
     if(!allRows.length){empty.classList.remove("hidden");updatePagination(0,0);return;}
     empty.classList.add("hidden");
-    const totalPages=Math.max(1,Math.ceil(allRows.length/pageSize));
+    const totalPages=Math.max(1,Math.ceil(allGroups.length/pageSize));
     if(currentPage>totalPages) currentPage=totalPages;
     const start=(currentPage-1)*pageSize;
-    const rows=allRows.slice(start,start+pageSize);
-    updatePagination(allRows.length,totalPages);
-    rows.forEach(c=>{
-      const col=therapistColorForName(c.leadTherapist);
-      const hasComments=c.comments&&c.comments.length>0;
-      const commentCount=hasComments?c.comments.length:0;
-      const distKm=(typeof c.lat==="number"&&typeof c.lng==="number")
-        ? haversineKm(OFFICE_LAT,OFFICE_LNG,c.lat,c.lng).toFixed(1)
-        : "—";
-      const therapistDisplay=clientTherapists(c).join(", ");
-      const tr=document.createElement("tr"); tr.className="client-row";
-      tr.innerHTML=`
-        <td class="col-ribbon" style="background:${col};" aria-hidden="true"></td>
-<td class="col-name" title="${escapeAttr(c.name)}">${escapeHtml(c.name)}${getSharedClients(c.id,c.name).length>0?`<span title="Also seen by another therapist" style="display:inline-block;margin-left:5px;font-size:.6rem;font-weight:700;padding:1px 5px;border-radius:4px;background:rgba(30,136,229,.12);color:#1E88E5;vertical-align:middle;">shared</span>`:""}</td>
-        <td class="col-addr" title="${escapeAttr(c.address)}">${escapeHtml(c.address)}</td>
-        <td class="col-lga">${escapeHtml(c.lga)}</td>
-        <td class="col-ther">${escapeHtml(c.therapyService||"")}</td>
-        <td class="col-tname" title="${escapeAttr(therapistDisplay)}">${escapeHtml(therapistDisplay)}</td>
-        <td class="col-freq">${escapeHtml(c.frequency)}</td>
-        <td class="col-phone">${escapeHtml(c.phone||"—")}</td>
-        <td class="col-dist">${distKm}</td>
-        <td class="col-act">
-          <div class="row-actions" onclick="event.stopPropagation()">
-            <div style="position:relative;display:inline-flex;">
-              <button type="button" class="icon-btn${hasComments?" has-comments":""}" title="Comments" data-action="comments" data-id="${c.id}" aria-label="Comments">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-              </button>
-              ${hasComments?`<span class="comment-badge">${commentCount}</span>`:""}
-            </div>
-            <button type="button" class="icon-btn" title="Edit" data-action="edit" data-id="${c.id}" aria-label="Edit">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
-            </button>
-            <button type="button" class="icon-btn danger" title="Archive" data-action="archive" data-id="${c.id}" aria-label="Archive">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"/></svg>
-            </button>
-          </div>
-        </td>`;
-      tr.addEventListener("click",()=>openDetail(c.id));
-      tr.querySelectorAll("[data-action]").forEach(btn=>{
-        btn.addEventListener("click",ev=>{
-          ev.stopPropagation();
-          const id=btn.dataset.id,act=btn.dataset.action;
-          if(act==="comments") openComments(id);
-          if(act==="edit")     openEditClient(id);
-          if(act==="archive")  archiveClient(id);
+    const pageGroups=allGroups.slice(start,start+pageSize);
+    updatePagination(allGroups.length,totalPages);
+    pageGroups.forEach(group=>{
+      if(group.length===1){
+        tbody.appendChild(buildSingleRow(group[0]));
+      } else {
+        const key=group[0].name.trim().toLowerCase();
+        const isOpen=expandedGroups.has(key);
+        tbody.appendChild(buildGroupHeader(group,key,isOpen));
+        group.forEach(c=>{
+          const sub=buildSubRow(c,key);
+          if(!isOpen) sub.classList.add("subrow-hidden");
+          tbody.appendChild(sub);
         });
-      });
-      tbody.appendChild(tr);
+      }
     });
   }
 
