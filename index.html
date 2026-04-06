@@ -1,244 +1,1655 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<title>Vivid Caseload</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VIVID Casefile</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <style>
+    :root {
+      --bg: #f4f6f9;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --primary: #0d9488;
+      --primary-hover: #0f766e;
+      --danger: #dc2626;
+      --radius: 12px;
+      --radius-sm: 10px;
+      --shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 4px 16px rgba(15, 23, 42, 0.06);
+      --footer-bg: #0f172a;
+      --footer-text: #f8fafc;
+    }
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.tailwindcss.com"></script>
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    * {
+      box-sizing: border-box;
+    }
 
-<style>
-body{font-family:'Inter',sans-serif}
-.round{border-radius:10px}
-#map{height:320px}
-.modal{z-index:50}
-.dim{filter:brightness(.55)}
-.rowHover:hover{transform:scale(1.01);background:#f3f5ee}
-</style>
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: "Inter", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.5;
+    }
 
-<script>
-tailwind.config={theme:{extend:{colors:{brand:'#708b42'}}}}
-</script>
+    .hidden {
+      display: none !important;
+    }
+
+    /* ——— Login ——— */
+    #login-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: linear-gradient(160deg, #ecfdf5 0%, #f0fdfa 40%, var(--bg) 100%);
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 40px 36px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+    }
+
+    .login-logo-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .login-logo-wrap img {
+      max-width: 260px;
+      height: auto;
+    }
+
+    .login-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      margin: 0;
+    }
+
+    .login-sub {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      text-align: center;
+      margin: -8px 0 24px;
+    }
+
+    label {
+      display: block;
+      font-weight: 500;
+      font-size: 0.875rem;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+
+    input[type="password"],
+    input[type="text"],
+    input[type="tel"],
+    input[type="time"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 0.9375rem;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+    }
+
+    .field-error {
+      color: var(--danger);
+      font-size: 0.8125rem;
+      margin-top: 6px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 11px 18px;
+      font-family: inherit;
+      font-size: 0.875rem;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      border: none;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      width: 100%;
+      margin-top: 20px;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--primary);
+      padding: 8px 12px;
+    }
+
+    /* ——— App shell ——— */
+    #app {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .header-left img {
+      height: 44px;
+      width: auto;
+    }
+
+    .therapist-select-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .therapist-select-wrap label {
+      margin: 0;
+      white-space: nowrap;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .therapist-select-wrap select {
+      min-width: 200px;
+      width: auto;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-left: auto;
+    }
+
+    .header-actions .btn {
+      width: auto;
+    }
+
+    .btn-export {
+      background: #0f172a;
+      color: #fff;
+    }
+
+    .btn-export:hover {
+      background: #1e293b;
+    }
+
+    .main {
+      flex: 1;
+      padding: 24px;
+      max-width: 1600px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .map-section {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 20px;
+      margin-bottom: 28px;
+      align-items: stretch;
+    }
+
+    @media (max-width: 900px) {
+      .map-section {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .map-controls {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 18px;
+      box-shadow: var(--shadow);
+      height: 100%;
+      min-height: 200px;
+    }
+
+    .map-controls h3 {
+      margin: 0 0 12px;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+    }
+
+    .map-controls .group {
+      margin-bottom: 18px;
+    }
+
+    .map-controls .group:last-child {
+      margin-bottom: 0;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: 0.875rem;
+    }
+
+    .checkbox-row input {
+      width: auto;
+      accent-color: var(--primary);
+    }
+
+    #map {
+      height: 380px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      z-index: 1;
+    }
+
+    .table-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .table-card-head {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .table-card-head h2 {
+      margin: 0;
+      font-size: 1.125rem;
+      font-weight: 600;
+    }
+
+    .sort-hint {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+    }
+
+    .data-table-wrap {
+      overflow-x: auto;
+    }
+
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+
+    .data-table th {
+      text-align: left;
+      padding: 12px 14px;
+      background: #f8fafc;
+      font-weight: 600;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .data-table th:hover {
+      color: var(--text);
+    }
+
+    .data-table th .sort-ind {
+      opacity: 0.4;
+      margin-left: 4px;
+    }
+
+    .data-table th.sorted .sort-ind {
+      opacity: 1;
+      color: var(--primary);
+    }
+
+    .data-table td {
+      padding: 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    .data-table tbody tr.client-row {
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    }
+
+    .data-table tbody tr.client-row:hover {
+      transform: scale(1.01);
+      box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08);
+      background: #f8fafc;
+      position: relative;
+      z-index: 2;
+    }
+
+    .data-table .row-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      justify-content: flex-end;
+      white-space: nowrap;
+    }
+
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: transparent;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .icon-btn:hover {
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .icon-btn.danger:hover {
+      color: var(--danger);
+      background: #fef2f2;
+    }
+
+    /* Modals */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal {
+      background: var(--surface);
+      border-radius: var(--radius);
+      max-width: 520px;
+      width: 100%;
+      max-height: 90vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 24px 48px rgba(15, 23, 42, 0.2);
+      border: 1px solid var(--border);
+      animation: slideUp 0.22s ease;
+    }
+
+    .modal.wide {
+      max-width: 640px;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(12px); opacity: 0.9; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .modal-head h2 {
+      margin: 0;
+      font-size: 1.125rem;
+      font-weight: 600;
+    }
+
+    .modal-close {
+      width: 40px;
+      height: 40px;
+      border: none;
+      background: var(--bg);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .modal-close:hover {
+      background: #e2e8f0;
+      color: var(--text);
+    }
+
+    .modal-body {
+      padding: 22px;
+      overflow-y: auto;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .form-row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 540px) {
+      .form-row-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .session-types {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 20px;
+    }
+
+    .session-types label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 400;
+      margin: 0;
+      cursor: pointer;
+    }
+
+    .session-types input {
+      width: auto;
+      accent-color: var(--primary);
+    }
+
+    .modal-footer {
+      padding: 16px 22px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .staff-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .staff-item {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .staff-item input {
+      flex: 1;
+    }
+
+    .comment-item {
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.875rem;
+    }
+
+    .comment-item:last-child {
+      border-bottom: none;
+    }
+
+    .comment-meta {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 8px 16px;
+      font-size: 0.875rem;
+    }
+
+    .detail-grid dt {
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .detail-grid dd {
+      margin: 0;
+    }
+
+    .empty-state {
+      padding: 48px 24px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    /* Footer */
+    .footer {
+      background: var(--footer-bg);
+      color: var(--footer-text);
+      padding: 20px 24px;
+      margin-top: auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .footer a {
+      color: #5eead4;
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+  </style>
 </head>
-
-<body class="bg-gray-50 text-gray-800">
-
-<!-- LOGIN -->
-<div id="login" class="h-screen flex items-center justify-center">
-  <div class="bg-white p-10 shadow round w-96 text-center">
-    <img src="https://vividearlylearning.com.au/wp-content/uploads/2025/07/Vivid-Early-Learning_RGB_Primary-logo_fullcolor-300x142.png" class="h-14 mx-auto mb-4"/>
-    <h1 class="text-xl font-semibold mb-4">Caseload Login</h1>
-    <input id="pw" type="password" class="border p-3 w-full round" placeholder="Password"
-      onkeydown="if(event.key==='Enter')loginCheck()"/>
-    <p id="pwErr" class="text-red-600 text-sm hidden mt-2">Incorrect password</p>
-    <button onclick="loginCheck()" class="mt-4 bg-brand text-white p-3 w-full round">Enter</button>
+<body>
+  <!-- Login -->
+  <div id="login-screen">
+    <div class="login-card">
+      <div class="login-logo-wrap">
+        <img src="https://vividearlylearning.com.au/wp-content/uploads/2025/07/Vivid-Early-Learning_RGB_Primary-logo_fullcolor-300x142.png" alt="Vivid Early Learning" />
+        <h1 class="login-title">VIVID Casefile</h1>
+      </div>
+      <p class="login-sub">Enter your access password to continue.</p>
+      <label for="login-password">Password</label>
+      <input type="password" id="login-password" placeholder="Enter password" autocomplete="current-password" />
+      <div id="login-error" class="field-error hidden">Incorrect password. Please try again.</div>
+      <button type="button" class="btn btn-primary" id="login-submit">Unlock</button>
+    </div>
   </div>
-</div>
 
-<!-- APP -->
-<div id="app" class="hidden">
+  <!-- App -->
+  <div id="app" class="hidden">
+    <header class="header">
+      <div class="header-left">
+        <img src="https://vividearlylearning.com.au/wp-content/uploads/2025/07/Vivid-Early-Learning_RGB_Primary-logo_fullcolor-300x142.png" alt="Vivid Early Learning" />
+        <div class="therapist-select-wrap">
+          <label for="header-therapist">Therapist</label>
+          <select id="header-therapist"></select>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button type="button" class="btn btn-secondary" id="btn-edit-staff">Edit Staff</button>
+        <button type="button" class="btn btn-secondary" id="btn-add-client">Add Client</button>
+        <button type="button" class="btn btn-export" id="btn-export">Export</button>
+      </div>
+    </header>
 
-<header class="bg-white shadow px-6 py-4 flex justify-between items-center">
-  <div class="flex items-center gap-6">
-    <img src="https://vividearlylearning.com.au/wp-content/uploads/2025/07/Vivid-Early-Learning_RGB_Primary-logo_fullcolor-300x142.png" class="h-10"/>
-    <select id="therapistFilter" class="border p-2 round"></select>
+    <main class="main">
+      <section class="map-section">
+        <aside class="map-controls">
+          <div class="group">
+            <h3>Map — LGA</h3>
+            <p style="margin:0 0 10px;font-size:0.75rem;color:var(--text-muted);">Filters pins only.</p>
+            <div id="map-lga-checkboxes"></div>
+          </div>
+          <div class="group">
+            <h3>Map — Lead therapist</h3>
+            <div id="map-therapist-checkboxes"></div>
+          </div>
+        </aside>
+        <div id="map"></div>
+      </section>
+
+      <section class="table-card">
+        <div class="table-card-head">
+          <h2>Caseload</h2>
+          <span class="sort-hint">Click column headers to sort</span>
+        </div>
+        <div class="data-table-wrap">
+          <table class="data-table" id="clients-table">
+            <thead>
+              <tr>
+                <th data-sort="name">Name <span class="sort-ind">↕</span></th>
+                <th data-sort="sessionType">Session <span class="sort-ind">↕</span></th>
+                <th data-sort="address">Address <span class="sort-ind">↕</span></th>
+                <th data-sort="lga">LGA <span class="sort-ind">↕</span></th>
+                <th data-sort="leadTherapist">Lead therapist <span class="sort-ind">↕</span></th>
+                <th data-sort="frequency">Frequency <span class="sort-ind">↕</span></th>
+                <th style="width:120px;text-align:right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="clients-tbody"></tbody>
+          </table>
+          <div id="clients-empty" class="empty-state hidden">No clients match the current therapist filter.</div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div>Made with love by Will Berry ♡</div>
+      <div class="footer-links">
+        <a href="#" id="link-archive">View archive</a>
+        <a href="#" id="link-reset-filters">Reset all filters</a>
+      </div>
+    </footer>
   </div>
-  <div class="flex gap-3">
-    <button onclick="toggleDark()" class="border px-4 py-2 round">Theme</button>
-    <button onclick="openStaff()" class="border px-4 py-2 round">Edit Staff</button>
-    <button onclick="openClient()" class="bg-brand text-white px-4 py-2 round">Add Client</button>
+
+  <!-- Add / Edit Client Modal -->
+  <div id="modal-client-overlay" class="overlay hidden">
+    <div class="modal wide" role="dialog" aria-labelledby="modal-client-title">
+      <div class="modal-head">
+        <h2 id="modal-client-title">Add client</h2>
+        <button type="button" class="modal-close" id="modal-client-x" aria-label="Close">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="form-client" class="form-grid">
+          <div>
+            <label for="fc-name">Name <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="fc-name" required placeholder="Full name" />
+          </div>
+          <div>
+            <label>Type of session <span style="color:var(--danger)">*</span></label>
+            <div class="session-types" id="fc-session-types">
+              <label><input type="checkbox" name="session" value="school" /> School</label>
+              <label><input type="checkbox" name="session" value="home" /> Home</label>
+              <label><input type="checkbox" name="session" value="studio" /> Studio</label>
+            </div>
+            <div id="fc-session-error" class="field-error hidden">Select at least one session type.</div>
+          </div>
+          <div>
+            <label for="fc-address">Address <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="fc-address" required placeholder="Street, suburb, NSW" />
+          </div>
+          <div class="form-row-2">
+            <div>
+              <label for="fc-lga">LGA <span style="color:var(--danger)">*</span></label>
+              <select id="fc-lga" required>
+                <option value="">Select LGA</option>
+                <option>Maitland</option>
+                <option>Cessnock</option>
+                <option>Newcastle</option>
+                <option>Lake Macquarie</option>
+                <option>Port Stephens</option>
+                <option>Dungog</option>
+              </select>
+            </div>
+            <div>
+              <label for="fc-frequency">Frequency <span style="color:var(--danger)">*</span></label>
+              <select id="fc-frequency" required>
+                <option value="">Select frequency</option>
+                <option>Twice weekly</option>
+                <option>Weekly</option>
+                <option>Fortnightly</option>
+                <option>Monthly</option>
+                <option>As needed</option>
+                <option>Other</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row-2">
+            <div>
+              <label for="fc-lead">Lead therapist <span style="color:var(--danger)">*</span></label>
+              <select id="fc-lead" required></select>
+            </div>
+            <div>
+              <label for="fc-other">Other therapists <span style="color:var(--danger)">*</span></label>
+              <input type="text" id="fc-other" required placeholder="Names, comma-separated, or &quot;None&quot;" />
+            </div>
+          </div>
+          <div>
+            <label for="fc-phone">Contact number <span style="color:var(--danger)">*</span></label>
+            <input type="tel" id="fc-phone" required placeholder="04xx xxx xxx" />
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="modal-client-cancel">Cancel</button>
+        <button type="button" class="btn btn-primary" id="modal-client-save" style="width:auto;">Save client</button>
+      </div>
+    </div>
   </div>
-</header>
 
-<section id="mapWrap" class="p-6">
-  <div id="map" class="round shadow"></div>
-</section>
+  <!-- Edit Staff Modal -->
+  <div id="modal-staff-overlay" class="overlay hidden">
+    <div class="modal wide">
+      <div class="modal-head">
+        <h2>Edit staff</h2>
+        <button type="button" class="modal-close" id="modal-staff-x" aria-label="Close">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p style="margin:0 0 16px;font-size:0.875rem;color:var(--text-muted);">Renaming a team member updates every client where they appear as lead or other therapist.</p>
+        <div class="staff-list" id="staff-editor-list"></div>
+        <button type="button" class="btn btn-ghost" id="btn-add-staff-row" style="margin-top:12px;">+ Add team member</button>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="modal-staff-cancel">Close</button>
+        <button type="button" class="btn btn-primary" id="modal-staff-save" style="width:auto;">Save changes</button>
+      </div>
+    </div>
+  </div>
 
-<section class="p-6">
-<table class="w-full bg-white shadow round text-sm">
-<thead class="bg-gray-100">
-<tr>
-<th class="p-3 text-left">Name</th>
-<th>Address</th>
-<th>LGA</th>
-<th>Lead Therapist</th>
-<th></th>
-</tr>
-</thead>
-<tbody id="tableBody"></tbody>
-</table>
-</section>
+  <!-- Comments Modal -->
+  <div id="modal-comments-overlay" class="overlay hidden">
+    <div class="modal">
+      <div class="modal-head">
+        <h2 id="comments-client-name">Comments</h2>
+        <button type="button" class="modal-close" id="modal-comments-x" aria-label="Close">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div id="comments-list" style="max-height:240px;overflow-y:auto;margin-bottom:16px;"></div>
+        <label for="comment-new">Add a note</label>
+        <textarea id="comment-new" rows="3" placeholder="Type your note…"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" id="comment-add-btn" style="width:auto;">Add note</button>
+      </div>
+    </div>
+  </div>
 
-<footer class="text-center text-xs py-6 text-gray-500">
-Made with love by Will Berry ♡
-</footer>
+  <!-- Client detail Modal -->
+  <div id="modal-detail-overlay" class="overlay hidden">
+    <div class="modal wide">
+      <div class="modal-head">
+        <h2 id="detail-name">Client details</h2>
+        <button type="button" class="modal-close" id="modal-detail-x" aria-label="Close">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" id="detail-body"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="modal-detail-close">Close</button>
+      </div>
+    </div>
+  </div>
 
-</div>
+  <!-- Archive view (full page overlay) -->
+  <div id="archive-overlay" class="overlay hidden" style="align-items:flex-start;padding-top:40px;">
+    <div class="modal wide" style="max-height:85vh;">
+      <div class="modal-head">
+        <h2>Archived clients</h2>
+        <button type="button" class="modal-close" id="archive-x" aria-label="Close">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" style="padding:0;">
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Address</th>
+                <th>LGA</th>
+                <th>Lead therapist</th>
+                <th style="text-align:right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="archive-tbody"></tbody>
+          </table>
+          <div id="archive-empty" class="empty-state hidden">No archived clients.</div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-<!-- MODAL -->
-<div id="overlay" class="hidden fixed inset-0 bg-black bg-opacity-40 modal flex items-center justify-center"></div>
+  <script>
+    const APP_PASSWORD = "vividearlylearning";
+    const STORAGE_KEY = "vivid_casefile_v1";
 
-<script>
-/* DATA */
-let STAFF=JSON.parse(localStorage.getItem("staff")||'["Megan","Lara M","Liv"]');
-let clients=JSON.parse(localStorage.getItem("clients")||"[]");
-let map, markers=[];
-let lat=null,lng=null,current=null;
+    const LGAS = ["Maitland", "Cessnock", "Newcastle", "Lake Macquarie", "Port Stephens", "Dungog"];
 
-/* LOGIN */
-function loginCheck(){
- if(pw.value==="vividearlylearning"){login.style.display="none";app.style.display="block";init();}
- else pwErr.classList.remove("hidden");
-}
+    const defaultState = () => ({
+      staff: [
+        { id: crypto.randomUUID(), name: "Elizabeth" },
+        { id: crypto.randomUUID(), name: "James" },
+        { id: crypto.randomUUID(), name: "Sarah" }
+      ],
+      clients: [
+        {
+          id: crypto.randomUUID(),
+          name: "Sample Client",
+          sessionTypes: ["home"],
+          address: "123 King Street, Newcastle NSW",
+          lat: -32.9280,
+          lng: 151.7815,
+          lga: "Newcastle",
+          frequency: "Weekly",
+          leadTherapist: "Elizabeth",
+          otherTherapists: "James",
+          phone: "0400 000 000",
+          comments: [],
+          archived: false
+        }
+      ]
+    });
 
-/* INIT */
-function init(){
- map=L.map('map').setView([-32.9,151.75],10);
- L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
- buildTherapistFilter();
- renderAll();
-}
+    let state = loadState();
+    let mapInstance = null;
+    let markersLayer = null;
+    let editingClientId = null;
+    let commentsClientId = null;
+    let sortState = { key: "name", dir: 1 };
+    let staffEditorSnapshot = [];
+    let appEventsBound = false;
 
-/* UI HELPERS */
-function showModal(html){
- overlay.innerHTML=`<div class="bg-white p-8 round w-[700px] relative">
- <button class="absolute top-3 right-4 text-xl" onclick="closeModal()">×</button>${html}</div>`;
- overlay.classList.remove("hidden");
- mapWrap.classList.add("dim");
-}
-function closeModal(){overlay.classList.add("hidden");mapWrap.classList.remove("dim");overlay.innerHTML="";}
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return defaultState();
+        const parsed = JSON.parse(raw);
+        if (!parsed.staff || !parsed.clients) return defaultState();
+        return parsed;
+      } catch {
+        return defaultState();
+      }
+    }
 
-/* THEME */
-function toggleDark(){document.body.classList.toggle("bg-gray-900");document.body.classList.toggle("text-white");}
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
 
-/* FILTER */
-function buildTherapistFilter(){
- therapistFilter.innerHTML='<option value="">All Therapists</option>'+STAFF.map(s=>`<option>${s}</option>`);
- therapistFilter.onchange=renderAll;
-}
+    function uid() {
+      return crypto.randomUUID();
+    }
 
-/* RENDER */
-function renderAll(){renderTable();renderMap();}
-function renderTable(){
- tableBody.innerHTML="";
- clients.filter(c=>!therapistFilter.value||c.lead===therapistFilter.value)
- .forEach((c,i)=>{
- tableBody.innerHTML+=`
- <tr class="border-t rowHover cursor-pointer" onclick="viewClient(${i})">
-  <td class="p-3">${c.name}</td>
-  <td>${c.address}</td>
-  <td>${c.lga}</td>
-  <td>${c.lead}</td>
-  <td onclick="event.stopPropagation()" class="space-x-2">
-   <button onclick="comments(${i})">💬</button>
-   <button onclick="editClient(${i})">✏️</button>
-   <button onclick="removeClient(${i})">🗑️</button>
-  </td>
- </tr>`;
- });
-}
+    // ——— Login ———
+    const loginScreen = document.getElementById("login-screen");
+    const appEl = document.getElementById("app");
+    const loginPassword = document.getElementById("login-password");
+    const loginError = document.getElementById("login-error");
+    const loginSubmit = document.getElementById("login-submit");
 
-function renderMap(){
- markers.forEach(m=>map.removeLayer(m)); markers=[];
- clients.forEach(c=>{
-  if(c.lat) markers.push(L.marker([c.lat,c.lng]).addTo(map).bindPopup(c.name));
- });
-}
+    function tryLogin() {
+      if (loginPassword.value === APP_PASSWORD) {
+        loginError.classList.add("hidden");
+        sessionStorage.setItem("vivid_unlocked", "1");
+        loginScreen.classList.add("hidden");
+        appEl.classList.remove("hidden");
+        initApp();
+      } else {
+        loginError.classList.remove("hidden");
+        loginPassword.focus();
+      }
+    }
 
-/* CLIENT VIEW */
-function viewClient(i){
- const c=clients[i];
- showModal(`<h2 class="text-xl font-semibold mb-4">${c.name}</h2>
- <div class="grid grid-cols-2 gap-4 text-sm">
- <div><b>Address:</b> ${c.address}</div>
- <div><b>LGA:</b> ${c.lga}</div>
- <div><b>Lead Therapist:</b> ${c.lead}</div>
- <div><b>Contact:</b> ${c.contact}</div>
- <div><b>Frequency:</b> ${c.freq}</div>
- </div>`);
-}
+    loginSubmit.addEventListener("click", tryLogin);
+    loginPassword.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") tryLogin();
+    });
 
-/* ADD / EDIT CLIENT */
-function openClient(){current=null;clientForm();}
-function editClient(i){current=i;clientForm(clients[i]);}
+    // ——— App init ———
+    function initApp() {
+      buildMapFilterUI();
+      populateHeaderTherapist();
+      initMap();
+      wireEvents();
+      renderAll();
+    }
 
-function clientForm(c={}){
- showModal(`
- <h2 class="text-xl font-semibold mb-4">Client</h2>
- <input id="n" class="border p-2 w-full mb-2 round" placeholder="Name" value="${c.name||''}" onkeydown="if(event.key==='Enter')saveClient()"/>
- <input id="addr" oninput="lookup(this.value)" class="border p-2 w-full mb-1 round" placeholder="Address" value="${c.address||''}"/>
- <div id="addrList" class="text-sm mb-2"></div>
- <input id="lga" class="border p-2 w-full mb-2 round" placeholder="LGA" value="${c.lga||''}"/>
- <input id="contact" class="border p-2 w-full mb-2 round" placeholder="Contact Number" value="${c.contact||''}"/>
- <input id="freq" class="border p-2 w-full mb-2 round" placeholder="Frequency" value="${c.freq||''}"/>
- <button onclick="saveClient()" class="bg-brand text-white px-4 py-2 round">Save</button>
- `);
-}
+    function wireEvents() {
+      if (appEventsBound) return;
+      appEventsBound = true;
+      document.getElementById("header-therapist").addEventListener("change", renderAll);
+      document.getElementById("btn-add-client").addEventListener("click", openAddClient);
+      document.getElementById("btn-edit-staff").addEventListener("click", openStaffModal);
+      document.getElementById("btn-export").addEventListener("click", exportVisibleCsv);
 
-function lookup(q){
- fetch(`https://nominatim.openstreetmap.org/search?country=Australia&format=json&q=${q}`)
- .then(r=>r.json()).then(d=>{
-  addrList.innerHTML=d.slice(0,5).map(a=>
-  `<div class="p-2 hover:bg-gray-100 cursor-pointer"
-  onclick="selAddr('${a.display_name}',${a.lat},${a.lon})">${a.display_name}</div>`).join('');
- });
-}
-function selAddr(a,la,ln){addr.value=a;lat=la;lng=ln;addrList.innerHTML="";}
+      document.getElementById("modal-client-x").addEventListener("click", closeClientModal);
+      document.getElementById("modal-client-cancel").addEventListener("click", closeClientModal);
+      document.getElementById("modal-client-save").addEventListener("click", saveClientForm);
+      document.getElementById("modal-client-overlay").addEventListener("click", (e) => {
+        if (e.target.id === "modal-client-overlay") closeClientModal();
+      });
 
-function saveClient(){
- const c={
-  name:n.value,address:addr.value,lga:lga.value,
-  lead:therapistFilter.value||STAFF[0],
-  contact:contact.value,freq:freq.value,
-  lat,lng,comments:(current!==null?clients[current].comments:[])
- };
- if(current!==null) clients[current]=c; else clients.push(c);
- localStorage.setItem("clients",JSON.stringify(clients));
- closeModal();renderAll();
-}
+      document.getElementById("modal-staff-x").addEventListener("click", closeStaffModal);
+      document.getElementById("modal-staff-cancel").addEventListener("click", closeStaffModal);
+      document.getElementById("modal-staff-save").addEventListener("click", saveStaffChanges);
+      document.getElementById("btn-add-staff-row").addEventListener("click", addStaffEditorRow);
+      document.getElementById("modal-staff-overlay").addEventListener("click", (e) => {
+        if (e.target.id === "modal-staff-overlay") closeStaffModal();
+      });
 
-/* COMMENTS */
-function comments(i){
- const c=clients[i];
- showModal(`<h2 class="text-xl font-semibold mb-4">Comments — ${c.name}</h2>
- <div>${(c.comments||[]).map((cm,ix)=>`
- <div class="flex justify-between border-b py-2">${cm}
- <button onclick="delComment(${i},${ix})">🗑️</button></div>`).join('')}</div>
- <input id="newC" class="border p-2 w-full mt-3 round"/>
- <button onclick="addComment(${i})" class="mt-2 bg-brand text-white px-3 py-2 round">Add</button>`);
-}
-function addComment(i){
- clients[i].comments=(clients[i].comments||[]);
- clients[i].comments.push(newC.value);
- localStorage.setItem("clients",JSON.stringify(clients));
- closeModal();renderAll();
-}
-function delComment(i,x){
- clients[i].comments.splice(x,1);
- localStorage.setItem("clients",JSON.stringify(clients));
- closeModal();renderAll();
-}
+      document.getElementById("modal-comments-x").addEventListener("click", closeCommentsModal);
+      document.getElementById("comment-add-btn").addEventListener("click", addComment);
+      document.getElementById("modal-comments-overlay").addEventListener("click", (e) => {
+        if (e.target.id === "modal-comments-overlay") closeCommentsModal();
+      });
 
-/* DELETE */
-function removeClient(i){
- if(confirm("Are you sure?")){
-  clients.splice(i,1);
-  localStorage.setItem("clients",JSON.stringify(clients));
-  renderAll();
- }
-}
+      document.getElementById("modal-detail-x").addEventListener("click", closeDetailModal);
+      document.getElementById("modal-detail-close").addEventListener("click", closeDetailModal);
+      document.getElementById("modal-detail-overlay").addEventListener("click", (e) => {
+        if (e.target.id === "modal-detail-overlay") closeDetailModal();
+      });
 
-/* STAFF */
-function openStaff(){
- showModal(`<h2 class="text-xl font-semibold mb-4">Staff</h2>
- ${STAFF.map((s,i)=>`<div class="flex justify-between mb-2">${s}
- <button onclick="STAFF.splice(${i},1);saveStaff()">🗑️</button></div>`).join('')}
- <input id="ns" class="border p-2 w-full round mt-2" placeholder="Add staff"/>
- <button onclick="STAFF.push(ns.value);saveStaff()" class="mt-2 bg-brand text-white px-3 py-2 round">Add</button>`);
-}
-function saveStaff(){localStorage.setItem("staff",JSON.stringify(STAFF));closeModal();buildTherapistFilter();}
-</script>
+      document.getElementById("link-archive").addEventListener("click", (e) => {
+        e.preventDefault();
+        openArchive();
+      });
+      document.getElementById("archive-x").addEventListener("click", closeArchive);
+      document.getElementById("archive-overlay").addEventListener("click", (e) => {
+        if (e.target.id === "archive-overlay") closeArchive();
+      });
+
+      document.getElementById("link-reset-filters").addEventListener("click", (e) => {
+        e.preventDefault();
+        resetAllFilters();
+      });
+
+      document.querySelectorAll(".data-table thead th[data-sort]").forEach((th) => {
+        th.addEventListener("click", () => {
+          const key = th.getAttribute("data-sort");
+          if (sortState.key === key) sortState.dir *= -1;
+          else {
+            sortState.key = key;
+            sortState.dir = 1;
+          }
+          document.querySelectorAll(".data-table thead th[data-sort]").forEach((h) => h.classList.remove("sorted"));
+          th.classList.add("sorted");
+          th.querySelector(".sort-ind").textContent = sortState.dir === 1 ? "↑" : "↓";
+          renderTable();
+        });
+      });
+    }
+
+    function buildMapFilterUI() {
+      const keepLga = new Set([...document.querySelectorAll(".map-lga:checked")].map((cb) => cb.value));
+      const lgaBox = document.getElementById("map-lga-checkboxes");
+      lgaBox.innerHTML = "";
+      LGAS.forEach((lga) => {
+        const row = document.createElement("div");
+        row.className = "checkbox-row";
+        const checked = keepLga.has(lga) ? " checked" : "";
+        row.innerHTML = `<label style="display:flex;align-items:center;gap:8px;margin:0;cursor:pointer;font-weight:400;"><input type="checkbox" class="map-lga"${checked} value="${lga}" /> ${lga}</label>`;
+        lgaBox.appendChild(row);
+      });
+      lgaBox.querySelectorAll(".map-lga").forEach((cb) => cb.addEventListener("change", renderMapMarkers));
+
+      const thBox = document.getElementById("map-therapist-checkboxes");
+      const renderTh = () => {
+        const keep = new Set([...document.querySelectorAll(".map-th:checked")].map((cb) => cb.value));
+        thBox.innerHTML = "";
+        state.staff.forEach((s) => {
+          const row = document.createElement("div");
+          row.className = "checkbox-row";
+          const checked = keep.has(s.name) ? " checked" : "";
+          row.innerHTML = `<label style="display:flex;align-items:center;gap:8px;margin:0;cursor:pointer;font-weight:400;"><input type="checkbox" class="map-th"${checked} value="${escapeAttr(s.name)}" /> ${escapeHtml(s.name)}</label>`;
+          thBox.appendChild(row);
+        });
+        thBox.querySelectorAll(".map-th").forEach((cb) => cb.addEventListener("change", renderMapMarkers));
+      };
+      renderTh();
+      window._renderMapTherapistChecks = renderTh;
+    }
+
+    function populateHeaderTherapist() {
+      const sel = document.getElementById("header-therapist");
+      const current = sel.value;
+      sel.innerHTML = `<option value="__all__">All therapists</option>`;
+      state.staff.forEach((s) => {
+        const o = document.createElement("option");
+        o.value = s.name;
+        o.textContent = s.name;
+        sel.appendChild(o);
+      });
+      if (current && [...sel.options].some((o) => o.value === current)) sel.value = current;
+      else sel.value = "__all__";
+    }
+
+    function populateLeadSelect(selectEl, selectedName) {
+      selectEl.innerHTML = "";
+      state.staff.forEach((s) => {
+        const o = document.createElement("option");
+        o.value = s.name;
+        o.textContent = s.name;
+        selectEl.appendChild(o);
+      });
+      if (selectedName && [...selectEl.options].some((o) => o.value === selectedName)) {
+        selectEl.value = selectedName;
+      } else if (selectEl.options.length) selectEl.selectedIndex = 0;
+    }
+
+    function initMap() {
+      if (mapInstance) return;
+      const centre = [-32.85, 151.78];
+      mapInstance = L.map("map").setView(centre, 9);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap"
+      }).addTo(mapInstance);
+      markersLayer = L.layerGroup().addTo(mapInstance);
+      setTimeout(() => mapInstance.invalidateSize(), 200);
+    }
+
+    function getHeaderTherapistFilter() {
+      const v = document.getElementById("header-therapist").value;
+      return v === "__all__" ? null : v;
+    }
+
+    function visibleClientsForTable() {
+      const f = getHeaderTherapistFilter();
+      return state.clients.filter((c) => !c.archived && (!f || c.leadTherapist === f));
+    }
+
+    function clientsForMap() {
+      return state.clients.filter((c) => !c.archived);
+    }
+
+    function mapFilterLgas() {
+      const checked = [...document.querySelectorAll(".map-lga:checked")].map((c) => c.value);
+      return checked.length ? checked : null;
+    }
+
+    function mapFilterTherapists() {
+      const checked = [...document.querySelectorAll(".map-th:checked")].map((c) => c.value);
+      return checked.length ? checked : null;
+    }
+
+    function clientPassesMapFilters(c) {
+      const lgaF = mapFilterLgas();
+      const thF = mapFilterTherapists();
+      if (lgaF && !lgaF.includes(c.lga)) return false;
+      if (thF && !thF.includes(c.leadTherapist)) return false;
+      return true;
+    }
+
+    async function geocodeAddress(address) {
+      const q = encodeURIComponent(address + ", Australia");
+      const url = `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`;
+      try {
+        const res = await fetch(url, {
+          headers: {
+            "Accept-Language": "en",
+            "User-Agent": "VIVID-Casefile/1.0 (internal caseload tool)"
+          }
+        });
+        const data = await res.json();
+        if (data && data[0]) {
+          return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+        }
+      } catch (_) {}
+      return null;
+    }
+
+    function renderMapMarkers() {
+      if (!mapInstance || !markersLayer) return;
+      markersLayer.clearLayers();
+      const list = clientsForMap().filter(clientPassesMapFilters);
+      const bounds = [];
+      list.forEach((c) => {
+        if (typeof c.lat === "number" && typeof c.lng === "number") {
+          const m = L.marker([c.lat, c.lng]).bindPopup(`<strong>${escapeHtml(c.name)}</strong><br>${escapeHtml(c.address)}`);
+          markersLayer.addLayer(m);
+          bounds.push([c.lat, c.lng]);
+        }
+      });
+      if (bounds.length) {
+        mapInstance.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+      }
+    }
+
+    function cmp(a, b) {
+      const sa = String(a ?? "").toLowerCase();
+      const sb = String(b ?? "").toLowerCase();
+      if (sa < sb) return -1;
+      if (sa > sb) return 1;
+      return 0;
+    }
+
+    function sortClients(rows) {
+      const key = sortState.key;
+      const dir = sortState.dir;
+      const copy = [...rows];
+      copy.sort((x, y) => {
+        let vx, vy;
+        if (key === "sessionType") {
+          vx = (x.sessionTypes || []).join(", ");
+          vy = (y.sessionTypes || []).join(", ");
+        } else {
+          vx = x[key];
+          vy = y[key];
+        }
+        const d = cmp(vx, vy);
+        return d * dir;
+      });
+      return copy;
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById("clients-tbody");
+      const empty = document.getElementById("clients-empty");
+      const rows = sortClients(visibleClientsForTable());
+      tbody.innerHTML = "";
+      if (!rows.length) {
+        empty.classList.remove("hidden");
+        return;
+      }
+      empty.classList.add("hidden");
+      rows.forEach((c) => {
+        const tr = document.createElement("tr");
+        tr.className = "client-row";
+        const sessionLabel = (c.sessionTypes || []).map((t) => t.charAt(0).toUpperCase() + t.slice(1)).join(", ");
+        tr.innerHTML = `
+          <td>${escapeHtml(c.name)}</td>
+          <td>${escapeHtml(sessionLabel)}</td>
+          <td>${escapeHtml(c.address)}</td>
+          <td>${escapeHtml(c.lga)}</td>
+          <td>${escapeHtml(c.leadTherapist)}</td>
+          <td>${escapeHtml(c.frequency)}</td>
+          <td>
+            <div class="row-actions" onclick="event.stopPropagation()">
+              <button type="button" class="icon-btn" title="Comments" data-action="comments" data-id="${c.id}" aria-label="Comments">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+              </button>
+              <button type="button" class="icon-btn" title="Edit" data-action="edit" data-id="${c.id}" aria-label="Edit">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+              </button>
+              <button type="button" class="icon-btn danger" title="Archive" data-action="archive" data-id="${c.id}" aria-label="Archive">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"/></svg>
+              </button>
+            </div>
+          </td>
+        `;
+        tr.addEventListener("click", () => openDetail(c.id));
+        tr.querySelectorAll("[data-action]").forEach((btn) => {
+          btn.addEventListener("click", (ev) => {
+            ev.stopPropagation();
+            const id = btn.getAttribute("data-id");
+            const act = btn.getAttribute("data-action");
+            if (act === "comments") openComments(id);
+            if (act === "edit") openEditClient(id);
+            if (act === "archive") archiveClient(id);
+          });
+        });
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderAll() {
+      if (window._renderMapTherapistChecks) window._renderMapTherapistChecks();
+      populateHeaderTherapist();
+      renderTable();
+      renderMapMarkers();
+      setTimeout(() => mapInstance && mapInstance.invalidateSize(), 100);
+    }
+
+    function openAddClient() {
+      editingClientId = null;
+      document.getElementById("modal-client-title").textContent = "Add client";
+      document.getElementById("form-client").reset();
+      document.querySelectorAll('#fc-session-types input[type="checkbox"]').forEach((x) => (x.checked = false));
+      document.getElementById("fc-session-error").classList.add("hidden");
+      const header = getHeaderTherapistFilter();
+      populateLeadSelect(document.getElementById("fc-lead"), header || (state.staff[0] && state.staff[0].name));
+      document.getElementById("modal-client-overlay").classList.remove("hidden");
+    }
+
+    function openEditClient(id) {
+      const c = state.clients.find((x) => x.id === id);
+      if (!c) return;
+      editingClientId = id;
+      document.getElementById("modal-client-title").textContent = "Edit client";
+      document.getElementById("fc-name").value = c.name;
+      document.querySelectorAll('#fc-session-types input[type="checkbox"]').forEach((x) => {
+        x.checked = (c.sessionTypes || []).includes(x.value);
+      });
+      document.getElementById("fc-address").value = c.address;
+      document.getElementById("fc-lga").value = c.lga;
+      document.getElementById("fc-frequency").value = c.frequency;
+      populateLeadSelect(document.getElementById("fc-lead"), c.leadTherapist);
+      document.getElementById("fc-other").value = c.otherTherapists;
+      document.getElementById("fc-phone").value = c.phone;
+      document.getElementById("fc-session-error").classList.add("hidden");
+      document.getElementById("modal-client-overlay").classList.remove("hidden");
+    }
+
+    function closeClientModal() {
+      document.getElementById("modal-client-overlay").classList.add("hidden");
+      editingClientId = null;
+    }
+
+    function getSessionTypesFromForm() {
+      return [...document.querySelectorAll('#fc-session-types input[type="checkbox"]:checked')].map((x) => x.value);
+    }
+
+    async function saveClientForm() {
+      const name = document.getElementById("fc-name").value.trim();
+      const types = getSessionTypesFromForm();
+      const address = document.getElementById("fc-address").value.trim();
+      const lga = document.getElementById("fc-lga").value;
+      const frequency = document.getElementById("fc-frequency").value;
+      const lead = document.getElementById("fc-lead").value;
+      const other = document.getElementById("fc-other").value.trim();
+      const phone = document.getElementById("fc-phone").value.trim();
+
+      const err = document.getElementById("fc-session-error");
+      if (!types.length) {
+        err.classList.remove("hidden");
+        return;
+      }
+      err.classList.add("hidden");
+
+      if (!name || !address || !lga || !frequency || !lead || !other || !phone) {
+        alert("Please complete all required fields.");
+        return;
+      }
+
+      let lat, lng;
+      if (editingClientId) {
+        const prev = state.clients.find((x) => x.id === editingClientId);
+        if (prev && prev.address === address && typeof prev.lat === "number") {
+          lat = prev.lat;
+          lng = prev.lng;
+        }
+      }
+      if (typeof lat !== "number") {
+        const geo = await geocodeAddress(address);
+        if (geo) {
+          lat = geo.lat;
+          lng = geo.lng;
+        } else {
+          lat = -32.85 + (Math.random() - 0.5) * 0.12;
+          lng = 151.78 + (Math.random() - 0.5) * 0.15;
+        }
+      }
+
+      if (editingClientId) {
+        const c = state.clients.find((x) => x.id === editingClientId);
+        if (c) {
+          Object.assign(c, {
+            name,
+            sessionTypes: types,
+            address,
+            lga,
+            frequency,
+            leadTherapist: lead,
+            otherTherapists: other,
+            phone,
+            lat,
+            lng
+          });
+        }
+      } else {
+        state.clients.push({
+          id: uid(),
+          name,
+          sessionTypes: types,
+          address,
+          lat,
+          lng,
+          lga,
+          frequency,
+          leadTherapist: lead,
+          otherTherapists: other,
+          phone,
+          comments: [],
+          archived: false
+        });
+      }
+
+      saveState();
+      closeClientModal();
+      renderAll();
+    }
+
+    function openStaffModal() {
+      staffEditorSnapshot = state.staff.map((s) => ({ id: s.id, name: s.name }));
+      renderStaffEditor();
+      document.getElementById("modal-staff-overlay").classList.remove("hidden");
+    }
+
+    function closeStaffModal() {
+      document.getElementById("modal-staff-overlay").classList.add("hidden");
+    }
+
+    function renderStaffEditor() {
+      const list = document.getElementById("staff-editor-list");
+      list.innerHTML = "";
+      staffEditorSnapshot.forEach((s, idx) => {
+        const row = document.createElement("div");
+        row.className = "staff-item";
+        row.innerHTML = `<input type="text" data-idx="${idx}" value="${escapeAttr(s.name)}" placeholder="Therapist name" />`;
+        list.appendChild(row);
+      });
+    }
+
+    function addStaffEditorRow() {
+      staffEditorSnapshot.push({ id: uid(), name: "" });
+      renderStaffEditor();
+    }
+
+    function applyStaffRenamesToClients(oldById, newById) {
+      state.clients.forEach((c) => {
+        for (const id of Object.keys(oldById)) {
+          if (!Object.prototype.hasOwnProperty.call(newById, id)) continue;
+          const was = oldById[id];
+          const now = newById[id];
+          if (c.leadTherapist === was) c.leadTherapist = now;
+        }
+        const parts = String(c.otherTherapists || "")
+          .split(",")
+          .map((p) => p.trim())
+          .filter(Boolean);
+        c.otherTherapists = parts
+          .map((p) => {
+            for (const id of Object.keys(oldById)) {
+              if (!Object.prototype.hasOwnProperty.call(newById, id)) continue;
+              if (p === oldById[id]) return newById[id];
+            }
+            return p;
+          })
+          .join(", ");
+      });
+    }
+
+    function saveStaffChanges() {
+      const inputs = document.querySelectorAll("#staff-editor-list input");
+      const newNames = [];
+      const idList = [];
+      inputs.forEach((inp, idx) => {
+        const name = inp.value.trim();
+        if (name) {
+          newNames.push(name);
+          idList.push(staffEditorSnapshot[idx] ? staffEditorSnapshot[idx].id : uid());
+        }
+      });
+      if (!newNames.length) {
+        alert("Add at least one team member with a name.");
+        return;
+      }
+      const oldById = {};
+      state.staff.forEach((s) => {
+        oldById[s.id] = s.name;
+      });
+      const newById = {};
+      idList.forEach((id, i) => {
+        newById[id] = newNames[i];
+      });
+      applyStaffRenamesToClients(oldById, newById);
+      state.staff = idList.map((id, i) => ({ id, name: newNames[i] }));
+      saveState();
+      closeStaffModal();
+      buildMapFilterUI();
+      renderAll();
+    }
+
+    function openComments(clientId) {
+      commentsClientId = clientId;
+      const c = state.clients.find((x) => x.id === clientId);
+      document.getElementById("comments-client-name").textContent = c ? `Comments — ${c.name}` : "Comments";
+      document.getElementById("comment-new").value = "";
+      renderCommentsList(c);
+      document.getElementById("modal-comments-overlay").classList.remove("hidden");
+    }
+
+    function renderCommentsList(c) {
+      const box = document.getElementById("comments-list");
+      if (!c || !c.comments || !c.comments.length) {
+        box.innerHTML = '<p style="margin:0;color:var(--text-muted);font-size:0.875rem;">No notes yet.</p>';
+        return;
+      }
+      box.innerHTML = c.comments
+        .slice()
+        .reverse()
+        .map(
+          (n) =>
+            `<div class="comment-item"><div class="comment-meta">${escapeHtml(n.at)}</div><div>${escapeHtml(n.text)}</div></div>`
+        )
+        .join("");
+    }
+
+    function addComment() {
+      const text = document.getElementById("comment-new").value.trim();
+      if (!text || !commentsClientId) return;
+      const c = state.clients.find((x) => x.id === commentsClientId);
+      if (!c) return;
+      if (!c.comments) c.comments = [];
+      const at = new Date();
+      const atStr = at.toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" });
+      c.comments.push({ at: atStr, text, iso: at.toISOString() });
+      saveState();
+      document.getElementById("comment-new").value = "";
+      renderCommentsList(c);
+    }
+
+    function closeCommentsModal() {
+      document.getElementById("modal-comments-overlay").classList.add("hidden");
+      commentsClientId = null;
+    }
+
+    function openDetail(id) {
+      const c = state.clients.find((x) => x.id === id);
+      if (!c) return;
+      document.getElementById("detail-name").textContent = c.name;
+      const sessionLabel = (c.sessionTypes || []).map((t) => t.charAt(0).toUpperCase() + t.slice(1)).join(", ");
+      let notesHtml = "";
+      if (c.comments && c.comments.length) {
+        notesHtml =
+          "<h3 style='margin:20px 0 10px;font-size:0.875rem;color:var(--text-muted);'>Comment history</h3>" +
+          c.comments
+            .slice()
+            .reverse()
+            .map(
+              (n) =>
+                `<div class="comment-item"><div class="comment-meta">${escapeHtml(n.at)}</div><div>${escapeHtml(n.text)}</div></div>`
+            )
+            .join("");
+      } else {
+        notesHtml = "<p style='color:var(--text-muted);font-size:0.875rem;'>No notes recorded.</p>";
+      }
+      document.getElementById("detail-body").innerHTML = `
+        <dl class="detail-grid">
+          <dt>Name</dt><dd>${escapeHtml(c.name)}</dd>
+          <dt>Session type</dt><dd>${escapeHtml(sessionLabel)}</dd>
+          <dt>Address</dt><dd>${escapeHtml(c.address)}</dd>
+          <dt>LGA</dt><dd>${escapeHtml(c.lga)}</dd>
+          <dt>Frequency</dt><dd>${escapeHtml(c.frequency)}</dd>
+          <dt>Lead therapist</dt><dd>${escapeHtml(c.leadTherapist)}</dd>
+          <dt>Other therapists</dt><dd>${escapeHtml(c.otherTherapists)}</dd>
+          <dt>Contact number</dt><dd>${escapeHtml(c.phone)}</dd>
+        </dl>
+        ${notesHtml}
+      `;
+      document.getElementById("modal-detail-overlay").classList.remove("hidden");
+    }
+
+    function closeDetailModal() {
+      document.getElementById("modal-detail-overlay").classList.add("hidden");
+    }
+
+    function archiveClient(id) {
+      if (!confirm("Archive this client? They will move to the archive list.")) return;
+      const c = state.clients.find((x) => x.id === id);
+      if (c) c.archived = true;
+      saveState();
+      renderAll();
+    }
+
+    function openArchive() {
+      const tbody = document.getElementById("archive-tbody");
+      const empty = document.getElementById("archive-empty");
+      const archived = state.clients.filter((c) => c.archived);
+      tbody.innerHTML = "";
+      if (!archived.length) {
+        empty.classList.remove("hidden");
+      } else {
+        empty.classList.add("hidden");
+        archived.forEach((c) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${escapeHtml(c.name)}</td>
+            <td>${escapeHtml(c.address)}</td>
+            <td>${escapeHtml(c.lga)}</td>
+            <td>${escapeHtml(c.leadTherapist)}</td>
+            <td style="text-align:right;">
+              <button type="button" class="btn btn-ghost" data-restore="${c.id}" style="padding:6px 12px;">Restore</button>
+            </td>
+          `;
+          tr.querySelector("[data-restore]").addEventListener("click", () => {
+            c.archived = false;
+            saveState();
+            openArchive();
+            renderAll();
+          });
+          tbody.appendChild(tr);
+        });
+      }
+      document.getElementById("archive-overlay").classList.remove("hidden");
+    }
+
+    function closeArchive() {
+      document.getElementById("archive-overlay").classList.add("hidden");
+    }
+
+    function exportVisibleCsv() {
+      const rows = sortClients(visibleClientsForTable());
+      const headers = ["Name", "Session types", "Address", "LGA", "Frequency", "Lead therapist", "Other therapists", "Contact"];
+      const lines = [headers.join(",")];
+      rows.forEach((c) => {
+        const sessionLabel = (c.sessionTypes || []).join("; ");
+        const line = [
+          csvEscape(c.name),
+          csvEscape(sessionLabel),
+          csvEscape(c.address),
+          csvEscape(c.lga),
+          csvEscape(c.frequency),
+          csvEscape(c.leadTherapist),
+          csvEscape(c.otherTherapists),
+          csvEscape(c.phone)
+        ];
+        lines.push(line.join(","));
+      });
+      const blob = new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `vivid-casefile-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    function csvEscape(v) {
+      const s = String(v ?? "");
+      if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    }
+
+    function resetAllFilters() {
+      document.getElementById("header-therapist").value = "__all__";
+      document.querySelectorAll(".map-lga, .map-th").forEach((cb) => (cb.checked = false));
+      sortState = { key: "name", dir: 1 };
+      document.querySelectorAll(".data-table thead th[data-sort]").forEach((h) => {
+        h.classList.remove("sorted");
+        const ind = h.querySelector(".sort-ind");
+        if (ind) ind.textContent = "↕";
+      });
+      renderAll();
+    }
+
+    function escapeHtml(s) {
+      const d = document.createElement("div");
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    function escapeAttr(s) {
+      return String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+    }
+
+    if (sessionStorage.getItem("vivid_unlocked") === "1") {
+      loginScreen.classList.add("hidden");
+      appEl.classList.remove("hidden");
+      initApp();
+    }
+  </script>
 </body>
 </html>
