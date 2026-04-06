@@ -696,19 +696,16 @@
   /* ================================================================
      FIREBASE — replace REPLACE_* values with your project config.
      Leave as-is to run in localStorage-only mode.
-     https://console.firebase.google.com/
      ================================================================ */
-  const firebaseConfig = {
-    apiKey: "AIzaSyCoCZUdgap9umrLNNzAWQwYJsaetHPfujQ",
-    authDomain: "vividearlylearningcaseloaddata.firebaseapp.com",
-    projectId: "vividearlylearningcaseloaddata",
-    storageBucket: "vividearlylearningcaseloaddata.firebasestorage.app",
-    messagingSenderId: "597364480379",
-    appId: "1:597364480379:web:c9193092ab967ad54cc5de",
-    measurementId: "G-59HM6B6EJM"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCoCZUdgap9umrLNNzAWQwYJsaetHPfujQ",
+  authDomain: "vividearlylearningcaseloaddata.firebaseapp.com",
+  databaseURL: "https://vividearlylearningcaseloaddata-default-rtdb.firebaseio.com",
+  projectId: "vividearlylearningcaseloaddata",
+  storageBucket: "vividearlylearningcaseloaddata.appspot.com",
+  messagingSenderId: "597364480379",
+  appId: "1:597364480379:web:c9193092ab967ad54cc5de"
+};
 
   const APP_PASSWORD     = "vividearlylearning";
   const STORAGE_KEY      = "vivid_caseload_v1";
