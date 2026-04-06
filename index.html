@@ -277,6 +277,18 @@
     .pagination-controls button:disabled { opacity:.35; cursor:default; }
     .pagination-controls .page-num { padding:0 8px; font-size:.8125rem; color:var(--text-muted); white-space:nowrap; }
 
+/* ——— Grouped rows ——— */
+    .group-header-row > td { background:rgba(74,92,40,0.05); font-weight:500; }
+    html[data-theme="dark"] .group-header-row > td { background:rgba(143,188,90,0.07); }
+    .client-subrow > td { background:rgba(0,0,0,0.018); font-size:.8125rem; }
+    html[data-theme="dark"] .client-subrow > td { background:rgba(255,255,255,0.025); }
+    .subrow-hidden { display:none !important; }
+    .group-expand-btn { background:none; border:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:6px; color:var(--text-muted); transition:background .15s; }
+    .group-expand-btn:hover { background:var(--primary-soft); color:var(--primary); }
+    .group-expand-btn svg { transition:transform .2s; }
+    .group-expand-btn.open svg { transform:rotate(90deg); }
+    .group-count-pill { display:inline-flex; align-items:center; justify-content:center; background:var(--primary-soft); color:var(--primary); border-radius:999px; font-size:.65rem; font-weight:700; padding:1px 7px; margin-left:6px; vertical-align:middle; }
+
     .hidden-input { position:absolute; width:0; height:0; opacity:0; pointer-events:none; }
 
 /* Back to top */
@@ -380,8 +392,9 @@
           <button type="button" class="btn btn-export btn-export-caret" id="btn-export-menu-toggle" aria-expanded="false" aria-label="Data menu">▾</button>
         </div>
         <div id="export-menu" class="export-menu hidden">
-          <button type="button" id="menu-import">Import spreadsheet…</button>
+<button type="button" id="menu-import">Import spreadsheet…</button>
           <button type="button" id="menu-export">Download export (CSV)</button>
+          <button type="button" id="menu-sync-addresses">↻ Sync client addresses</button>
         </div>
       </div>
       <input type="file" id="import-file" class="hidden-input" accept=".csv,text/csv" />
@@ -811,6 +824,7 @@ const FREQ_WEIGHTS = {
   let mapInstance = null, clusterGroup = null;
   let editingClientId = null, commentsClientId = null;
 let sortState = { key: "name", dir: 1 };
+  const expandedGroups = new Set();
   let currentPage = 1;
   let pageSize = 25;
   let staffEditorSnapshot = [];
@@ -984,6 +998,7 @@ function clientTherapists(c) {
     document.getElementById("btn-export").addEventListener("click",()=>{closeExportMenu();exportVisibleCsv();});
     document.getElementById("btn-export-menu-toggle").addEventListener("click",e=>{e.stopPropagation();const m=document.getElementById("export-menu");m.classList.toggle("hidden");document.getElementById("btn-export-menu-toggle").setAttribute("aria-expanded",String(!m.classList.contains("hidden")));});
     document.getElementById("menu-export").addEventListener("click",()=>{closeExportMenu();exportVisibleCsv();});
+document.getElementById("menu-sync-addresses").addEventListener("click",()=>{closeExportMenu();syncClientAddresses();});
     document.getElementById("menu-import").addEventListener("click",()=>{closeExportMenu();document.getElementById("import-file").click();});
     document.getElementById("import-file").addEventListener("change",onImportFile);
     document.querySelector(".export-dropdown-wrap").addEventListener("click",e=>e.stopPropagation());
@@ -1187,6 +1202,52 @@ th.classList.add("sorted");th.querySelector(".sort-ind").textContent=sortState.d
     if(svcF&&!svcF.includes(c.therapyService||"")) return false;
     return true;
   }
+
+/* ——— Address sync ——— */
+  function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+  async function geocodeAddressNSW(address){
+    // Tries NSW-specific first for tighter results, then falls back
+    const queries=[
+      encodeURIComponent(address+", NSW, Australia"),
+      encodeURIComponent(address+", Australia")
+    ];
+    for(const q of queries){
+      try{
+        const res=await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&countrycodes=au`,{headers:{"Accept-Language":"en","User-Agent":"VIVID-Caseload/1.0 (internal)"}});
+        const data=await res.json();
+        if(data&&data[0]) return{lat:parseFloat(data[0].lat),lng:parseFloat(data[0].lon)};
+      }catch(_){}
+    }
+    return null;
+  }
+
+  async function syncClientAddresses(){
+    const candidates=state.clients.filter(c=>!c.archived&&c.address&&c.address!=="—");
+    if(!candidates.length){alert("No client addresses to sync.");return;}
+    if(!confirm(`Re-geocode ${candidates.length} client address${candidates.length!==1?"es":""}?\n\nThis will update all map pin locations and may take a minute. Do not close the tab while syncing.`)) return;
+
+    const lbl=document.getElementById("sync-label");
+    const dot=document.getElementById("sync-dot");
+    let updated=0,failed=0;
+
+    for(let i=0;i<candidates.length;i++){
+      const c=candidates[i];
+      if(lbl) lbl.textContent=`Syncing ${i+1}/${candidates.length}…`;
+      if(dot) dot.style.background="#f59e0b";
+      const geo=await geocodeAddressNSW(c.address);
+      if(geo){c.lat=geo.lat;c.lng=geo.lng;updated++;}
+      else failed++;
+      // Nominatim requires ≥1 req/sec — we use 1.2s to be safe
+      if(i<candidates.length-1) await sleep(1200);
+    }
+
+    saveState();
+    renderAll();
+    setSyncStatus("synced");
+    alert(`Address sync complete.\n✓ Updated: ${updated}\n✗ Not found: ${failed}${failed>0?"\n\nClients not found were not changed. Check their address format (e.g. 15 Second St, Cessnock 2325).":""}`);
+  }
+
   async function geocodeAddress(address){
     try{const res=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address+", Australia")}&format=json&limit=1&countrycodes=au`,{headers:{"Accept-Language":"en","User-Agent":"VIVID-Caseload/1.0 (internal)"}});const data=await res.json();if(data&&data[0])return{lat:parseFloat(data[0].lat),lng:parseFloat(data[0].lon)};}catch(_){}return null;
   }
@@ -1241,9 +1302,139 @@ function updatePagination(total, totalPages){
     next.disabled=currentPage>=totalPages; last.disabled=currentPage>=totalPages;
   }
 
-  function updateCaseloadCount(count){
-    const h=document.getElementById("caseload-heading");
-    if(h) h.textContent=`Caseload (${count} client${count!==1?"s":""})`;
+/* ——— Grouped row helpers ——— */
+  function groupClientRows(rows){
+    const groups=new Map();
+    rows.forEach(c=>{
+      const key=c.name.trim().toLowerCase();
+      if(!groups.has(key)) groups.set(key,[]);
+      groups.get(key).push(c);
+    });
+    return [...groups.values()];
+  }
+
+  function toggleGroup(groupKey){
+    const esc=CSS.escape(groupKey);
+    if(expandedGroups.has(groupKey)) expandedGroups.delete(groupKey);
+    else expandedGroups.add(groupKey);
+    const isOpen=expandedGroups.has(groupKey);
+    const header=document.querySelector(`tr[data-group-key="${esc}"]`);
+    const subs=document.querySelectorAll(`tr[data-group-member="${esc}"]`);
+    if(header){const btn=header.querySelector(".group-expand-btn");if(btn){btn.classList.toggle("open",isOpen);btn.setAttribute("aria-expanded",String(isOpen));}}
+    subs.forEach(r=>r.classList.toggle("subrow-hidden",!isOpen));
+  }
+
+  function _wireRowActions(tr){
+    tr.querySelectorAll("[data-action]").forEach(btn=>{
+      btn.addEventListener("click",ev=>{
+        ev.stopPropagation();
+        const id=btn.dataset.id,act=btn.dataset.action;
+        if(act==="comments") openComments(id);
+        if(act==="edit")     openEditClient(id);
+        if(act==="archive")  archiveClient(id);
+      });
+    });
+  }
+
+  function _actionCells(c){
+    const hasComments=c.comments&&c.comments.length>0;
+    const n=hasComments?c.comments.length:0;
+    return `<td class="col-act">
+      <div class="row-actions" onclick="event.stopPropagation()">
+        <div style="position:relative;display:inline-flex;">
+          <button type="button" class="icon-btn${hasComments?" has-comments":""}" title="Comments" data-action="comments" data-id="${c.id}">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          </button>${hasComments?`<span class="comment-badge">${n}</span>`:""}
+        </div>
+        <button type="button" class="icon-btn" title="Edit" data-action="edit" data-id="${c.id}">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+        </button>
+        <button type="button" class="icon-btn danger" title="Archive" data-action="archive" data-id="${c.id}">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"/></svg>
+        </button>
+      </div>
+    </td>`;
+  }
+
+  function buildSingleRow(c){
+    const col=therapistColorForName(c.leadTherapist);
+    const dist=(typeof c.lat==="number"&&typeof c.lng==="number")?haversineKm(OFFICE_LAT,OFFICE_LNG,c.lat,c.lng).toFixed(1):"—";
+    const sharedBadge=getSharedClients(c.id,c.name).length>0?`<span title="Also seen by another therapist" style="display:inline-block;margin-left:5px;font-size:.6rem;font-weight:700;padding:1px 5px;border-radius:4px;background:rgba(30,136,229,.12);color:#1E88E5;vertical-align:middle;">shared</span>`:"";
+    const tr=document.createElement("tr"); tr.className="client-row";
+    tr.innerHTML=`
+      <td class="col-ribbon" style="background:${col};" aria-hidden="true"></td>
+      <td class="col-name" title="${escapeAttr(c.name)}">${escapeHtml(c.name)}${sharedBadge}</td>
+      <td class="col-addr" title="${escapeAttr(c.address)}">${escapeHtml(c.address)}</td>
+      <td class="col-lga">${escapeHtml(c.lga)}</td>
+      <td class="col-ther">${escapeHtml(c.therapyService||"")}</td>
+      <td class="col-tname">${escapeHtml(c.leadTherapist)}</td>
+      <td class="col-freq">${escapeHtml(c.frequency)}</td>
+      <td class="col-phone">${escapeHtml(c.phone||"—")}</td>
+      <td class="col-dist">${dist}</td>
+      ${_actionCells(c)}`;
+    tr.addEventListener("click",()=>openDetail(c.id));
+    _wireRowActions(tr);
+    return tr;
+  }
+
+  function buildGroupHeader(group,groupKey,isOpen){
+    const first=group[0];
+    const col=therapistColorForName(first.leadTherapist);
+    const dist=(typeof first.lat==="number"&&typeof first.lng==="number")?haversineKm(OFFICE_LAT,OFFICE_LNG,first.lat,first.lng).toFixed(1):"—";
+    const therapists=[...new Set(group.map(c=>c.leadTherapist))].join(", ");
+    const therapies=[...new Set(group.map(c=>c.therapyService||""))].filter(Boolean).join(", ");
+    const freqs=[...new Set(group.map(c=>c.frequency))].join(", ");
+    const tr=document.createElement("tr"); tr.className="client-row group-header-row";
+    tr.setAttribute("data-group-key",groupKey);
+    tr.innerHTML=`
+      <td class="col-ribbon" style="background:${col};" aria-hidden="true"></td>
+      <td class="col-name">${escapeHtml(first.name)}<span class="group-count-pill">${group.length}</span></td>
+      <td class="col-addr" title="${escapeAttr(first.address)}">${escapeHtml(first.address)}</td>
+      <td class="col-lga">${escapeHtml(first.lga)}</td>
+      <td class="col-ther" title="${escapeAttr(therapies)}">${escapeHtml(therapies)}</td>
+      <td class="col-tname" title="${escapeAttr(therapists)}">${escapeHtml(therapists)}</td>
+      <td class="col-freq">${escapeHtml(freqs)}</td>
+      <td class="col-phone">${escapeHtml(first.phone||"—")}</td>
+      <td class="col-dist">${dist}</td>
+      <td class="col-act">
+        <div class="row-actions" onclick="event.stopPropagation()">
+          <button type="button" class="group-expand-btn${isOpen?" open":""}" data-group-toggle="${escapeAttr(groupKey)}" aria-expanded="${isOpen}" title="${isOpen?"Collapse":"Expand"}">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
+        </div>
+      </td>`;
+    tr.addEventListener("click",()=>toggleGroup(groupKey));
+    return tr;
+  }
+
+  function buildSubRow(c,groupKey){
+    const col=therapistColorForName(c.leadTherapist);
+    const dist=(typeof c.lat==="number"&&typeof c.lng==="number")?haversineKm(OFFICE_LAT,OFFICE_LNG,c.lat,c.lng).toFixed(1):"—";
+    const tr=document.createElement("tr"); tr.className="client-row client-subrow";
+    tr.setAttribute("data-group-member",groupKey);
+    tr.innerHTML=`
+      <td class="col-ribbon" style="background:${col};" aria-hidden="true"></td>
+      <td class="col-name" style="color:var(--text-muted);padding-left:18px;">↳</td>
+      <td class="col-addr" title="${escapeAttr(c.address)}">${escapeHtml(c.address)}</td>
+      <td class="col-lga">${escapeHtml(c.lga)}</td>
+      <td class="col-ther">${escapeHtml(c.therapyService||"")}</td>
+      <td class="col-tname">${escapeHtml(c.leadTherapist)}</td>
+      <td class="col-freq">${escapeHtml(c.frequency)}</td>
+      <td class="col-phone">${escapeHtml(c.phone||"—")}</td>
+      <td class="col-dist">${dist}</td>
+      ${_actionCells(c)}`;
+    tr.addEventListener("click",()=>openDetail(c.id));
+    _wireRowActions(tr);
+    return tr;
+  }
+
+function updateCaseloadCount(totalRecords, uniqueClients){
+    const h=document.getElementById("caseload-heading"); if(!h) return;
+    if(!uniqueClients||uniqueClients===totalRecords){
+      h.textContent=`Caseload (${totalRecords} client${totalRecords!==1?"s":""})`;
+    } else {
+      h.textContent=`Caseload (${uniqueClients} client${uniqueClients!==1?"s":""}, ${totalRecords} records)`;
+    }
   }
 
   function renderTable(){
